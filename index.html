@@ -1,0 +1,309 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TR-pop Tabu 🎤</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:18px;font-family:Arial,sans-serif;background:linear-gradient(135deg,#ffe4f0,#e8e9ff);color:#29243c}
+main{max-width:650px;margin:auto}
+.panel{background:white;padding:22px;border-radius:24px;margin:15px 0;box-shadow:0 8px 25px #33204c16}
+h1{text-align:center;font-size:42px;color:#ed4894;margin-bottom:5px}
+h2{text-align:center}
+p{text-align:center}
+button,select,input{font:inherit}
+button{border:0;border-radius:12px;padding:12px;font-weight:bold;cursor:pointer}
+input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin:7px 0 14px}
+.primary{background:#ed4894;color:white}
+.secondary{background:#eee9f8;color:#302743}
+.good{background:#c9f6df;color:#17683c}
+.bad{background:#ffdddd;color:#9c2020}
+.hidden{display:none!important}
+.colors{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 18px}
+.dot{width:38px;height:38px;border:3px solid white;border-radius:50%;padding:0}
+.dot.selected{outline:3px solid #29243c}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.team{padding:12px;border:2px solid var(--c);border-radius:16px}
+.check{display:flex;align-items:center;gap:10px}
+.check input{width:20px;margin:0}
+#penalties label{display:block;background:#fff0f6;padding:10px;margin:7px 0;border-radius:10px}
+#penalties input{width:auto;margin:0}
+.word{background:var(--c);color:white;text-align:center;padding:24px 14px;border-radius:22px;margin:20px 0}
+.word h2{font-size:35px;overflow-wrap:anywhere}
+.forbidden{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0;list-style:none}
+.forbidden li{padding:10px;background:#ffffff30;border:1px solid #ffffff70;border-radius:9px;font-weight:bold}
+.scores{display:flex;gap:10px}
+.score{flex:1;text-align:center;background:white;border:2px solid var(--c);border-radius:12px;padding:10px;overflow-wrap:anywhere}
+.score b{font-size:24px;display:block}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.actions button:last-child{grid-column:1/-1}
+.center{text-align:center}
+#timer{font-size:32px;font-weight:bold}
+small{color:#6d657d}
+@media(max-width:430px){.grid{grid-template-columns:1fr}h1{font-size:35px}}
+</style>
+</head>
+<body>
+<main>
+<h1>TR-pop TABU 🎤</h1>
+<p>Pop kültürünü anlat, takımını zafere taşı! 💗</p>
+
+<section id="welcome" class="panel center">
+<div style="font-size:65px">🎤💖🃏</div>
+<h2>Oyuna hazır mısın?</h2>
+<p>Takımını seç, kelimeleri anlat ve puanları topla!</p>
+<button class="primary" onclick="show('setup')">OYUNU KUR ✨</button>
+</section>
+
+<section id="setup" class="panel hidden">
+<h2>🎨 Takımlar</h2>
+<div class="grid">
+<div class="team" id="box0" style="--c:#2587ff">
+<b>1. TAKIM</b>
+<input id="name0" value="Manifestçiler" maxlength="24">
+<div class="colors" id="colors0"></div>
+</div>
+<div class="team" id="box1" style="--c:#23a66d">
+<b>2. TAKIM</b>
+<input id="name1" value="Pop yıldızları" maxlength="24">
+<div class="colors" id="colors1"></div>
+</div>
+</div>
+<h3>⏱️ Tur süresi</h3>
+<select id="duration">
+<option value="30">30 saniye</option>
+<option value="45">45 saniye</option>
+<option value="60" selected>60 saniye</option>
+<option value="90">90 saniye</option>
+<option value="120">120 saniye</option>
+</select>
+<h3>🏆 Kazanma hedefi</h3>
+<select id="target">
+<option value="10">10 puan</option>
+<option value="15" selected>15 puan</option>
+<option value="20">20 puan</option>
+<option value="0">Bütün kartlar bitene kadar</option>
+</select>
+<label class="check"><input type="checkbox" id="usePenalty" onchange="togglePenalty()"> Ceza olsun mu?</label>
+<div id="penaltyArea" class="hidden">
+<p>Bir ceza seç:</p>
+<div id="penalties"></div>
+</div>
+<p id="error" style="color:#d22"></p>
+<button class="primary" style="width:100%" onclick="startGame()">BAŞLA 🚀</button>
+<button class="secondary" style="width:100%;margin-top:8px" onclick="show('welcome')">Geri</button>
+</section>
+
+<section id="game" class="panel hidden">
+<div class="scores" id="scores"></div>
+<p id="turn"></p>
+<div class="center" id="timer">01:00</div>
+<div style="height:7px;background:#eee;border-radius:10px;overflow:hidden">
+<div id="bar" style="height:100%;width:100%;background:#ed4894"></div>
+</div>
+<div class="word" id="word" style="--c:#2587ff">
+<small style="color:white">ANLATILACAK KELİME</small>
+<h2 id="targetWord"></h2>
+<ul class="forbidden" id="forbidden"></ul>
+</div>
+<p id="status">Haydi, anlatmaya başla!</p>
+<div class="actions">
+<button class="good" onclick="answer(1,'Doğru cevap! +1 🎉')">✓ Bildi +1</button>
+<button class="secondary" onclick="answer(0,'Pas geçildi!')">↪ Pas</button>
+<button class="bad" onclick="answer(-1,'Yasak kelime! -1')">✕ Yasak kelime -1</button>
+</div>
+<div class="grid" style="margin-top:12px">
+<button class="secondary" onclick="pauseGame()" id="pause">⏸ Duraklat</button>
+<button class="secondary" onclick="endTurn()">Turu bitir →</button>
+</div>
+<button class="bad" style="width:100%;margin-top:10px" onclick="finish('Oyun bitirildi.')">Oyunu bitir</button>
+</section>
+
+<section id="result" class="panel center hidden">
+<div style="font-size:60px">🏆</div>
+<h2>Oyun bitti!</h2>
+<h2 id="winner"></h2>
+<p id="resultScores"></p>
+<div id="resultPenalty"></div>
+<button class="primary" onclick="startGame()">YENİDEN OYNA 🔄</button>
+<button class="secondary" style="margin-top:8px;width:100%" onclick="show('setup')">Takımları değiştir</button>
+</section>
+</main>
+
+<script>
+const palette=[
+["Mavi","#2587ff"],["Yeşil","#23a66d"],
+["Sarı","#e8b91d"],["Mor","#8957d8"],
+["Kırmızı","#ed4d5b"],["Pembe","#f04f9a"]
+];
+
+const cards=[
+["Esin Bahat",["Manifest","Sarı","Big5","Teşekkürler","Mina"]],
+["Sıla",["Mantra","Tek başıma","Özdil","Shipper","Bozkurt"]],
+["Crush",["İdol house","Gak gak","Ben daha 18 yaşındayım","Aref","Milbar"]],
+["Radikal",["Ayran değilim","Yusa","Yemre","Takla","Pankart"]],
+["Aura",["Ezgi","Tuzak","Çöl","Aurora","Dil"]],
+["Manifest",["Dilemek, istemek","Londra","Global","Hilzey","Hileli"]]
+];
+
+const punishments=[
+"İzin verenler için yıkanabilir kalemle komik bıyık çizimi.",
+"Bir şarkının nakaratını söyle.",
+"20 saniyelik komik dans yap.",
+"Rakip takıma komik bir slogan bul.",
+"Bir sonraki turun sunucusu ol.",
+"Abartılı bir ödül konuşması yap.",
+"Rakip takıma üç iltifat et.",
+"10 saniyelik podyum yürüyüşü yap.",
+"Bir film sahnesini sessizce canlandır.",
+"Rakip takıma küçük bir çizim yap."
+];
+
+let chosen=[0,1],teams=[],scores=[0,0],active=0;
+let deck=[],current=null,remaining=60,timer=null,paused=false,ended=false,penalty="";
+
+function show(id){
+["welcome","setup","game","result"].forEach(x=>
+document.getElementById(x).classList.toggle("hidden",x!==id));
+}
+function makeColors(){
+for(let t=0;t<2;t++){
+let el=document.getElementById("colors"+t);
+el.innerHTML="";
+palette.forEach((c,i)=>{
+let b=document.createElement("button");
+b.className="dot"+(chosen[t]===i?" selected":"");
+b.style.background=c[1];b.title=c[0];
+b.onclick=()=>{
+if(chosen[1-t]===i){
+document.getElementById("error").textContent="Takımlar farklı renk seçmeli!";
+return;
+}
+chosen[t]=i;
+document.getElementById("error").textContent="";
+makeColors();
+};
+el.appendChild(b);
+});
+document.getElementById("box"+t).style.setProperty("--c",palette[chosen[t]][1]);
+}
+}
+function makePenalties(){
+let el=document.getElementById("penalties");
+punishments.forEach((p,i)=>{
+let l=document.createElement("label");
+l.innerHTML="";
+let r=document.createElement("input");
+r.type="radio";r.name="penalty";r.value=i;
+if(i===0)r.checked=true;
+l.append(r,document.createTextNode(" "+(i+1)+". "+p));
+el.appendChild(l);
+});
+}
+function togglePenalty(){
+document.getElementById("penaltyArea").classList.toggle("hidden",
+!document.getElementById("usePenalty").checked);
+}
+function shuffle(a){
+for(let i=a.length-1;i>0;i--){
+let j=Math.floor(Math.random()*(i+1));
+[a[i],a[j]]=[a[j],a[i]];
+}
+return a;
+}
+function startGame(){
+clearInterval(timer);
+let a=document.getElementById("name0").value.trim();
+let b=document.getElementById("name1").value.trim();
+if(!a||!b){document.getElementById("error").textContent="İki takım da isim seçmeli!";return}
+if(chosen[0]===chosen[1]){document.getElementById("error").textContent="Renkler farklı olmalı!";return}
+teams=[{name:a,color:palette[chosen[0]][1]},{name:b,color:palette[chosen[1]][1]}];
+scores=[0,0];active=0;
+remaining=Number(document.getElementById("duration").value);
+deck=shuffle(cards.map((c,i)=>({id:i,word:c[0],forbidden:c[1]})));
+current=null;paused=false;ended=false;
+penalty=document.getElementById("usePenalty").checked?
+punishments[Number(document.querySelector('input[name="penalty"]:checked')?.value||0)]:"";
+show("game");nextCard();updateScores();startTimer();
+}
+function updateScores(){
+let el=document.getElementById("scores");el.innerHTML="";
+teams.forEach((t,i)=>{
+let d=document.createElement("div");
+d.className="score";d.style.setProperty("--c",t.color);
+let name=document.createElement("strong");name.textContent=t.name;
+let score=document.createElement("b");score.textContent=scores[i];
+d.append(name,score);
+el.appendChild(d);
+});
+document.getElementById("turn").textContent="Sıra: "+teams[active].name;
+}
+function nextCard(){
+if(ended)return;
+if(deck.length===0){finish("Bütün kartlar bitti!");return}
+current=deck.pop();
+document.getElementById("word").style.setProperty("--c",teams[active].color);
+document.getElementById("targetWord").textContent=current.word;
+let ul=document.getElementById("forbidden");ul.innerHTML="";
+current.forbidden.forEach(w=>{
+let li=document.createElement("li");li.textContent=w;ul.appendChild(li);
+});
+updateScores();
+}
+function answer(points,msg){
+if(ended||paused||!current)return;
+scores[active]=Math.max(0,scores[active]+points);
+document.getElementById("status").textContent=msg;
+let goal=Number(document.getElementById("target").value);
+if(goal&&scores[active]>=goal){finish(teams[active].name+" hedef puana ulaştı!");return}
+nextCard();
+}
+function startTimer(){
+clearInterval(timer);
+timer=setInterval(()=>{
+if(paused||ended)return;
+remaining--;
+updateTimer();
+if(remaining<=0)endTurn();
+},1000);
+updateTimer();
+}
+function updateTimer(){
+let m=Math.floor(remaining/60),s=remaining%60;
+document.getElementById("timer").textContent=
+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+document.getElementById("bar").style.width=
+Math.max(0,remaining/Number(document.getElementById("duration").value)*100)+"%";
+document.getElementById("bar").style.background=remaining<=10?"#ed4d5b":"#ed4894";
+}
+function endTurn(){
+if(ended)return;
+active=1-active;
+remaining=Number(document.getElementById("duration").value);
+paused=false;
+document.getElementById("pause").textContent="⏸ Duraklat";
+document.getElementById("status").textContent="Yeni takım, sıra sende!";
+nextCard();updateTimer();
+}
+function pauseGame(){
+if(ended)return;
+paused=!paused;
+document.getElementById("pause").textContent=paused?"▶ Devam et":"⏸ Duraklat";
+document.getElementById("status").textContent=paused?"Oyun duraklatıldı.":"Devam!";
+}
+function finish(reason){
+if(ended)return;
+ended=true;clearInterval(timer);show("result");
+let w=scores[0]===scores[1]?-1:(scores[0]>scores[1]?0:1);
+document.getElementById("winner").textContent=w<0?"Berabere! 🤝":"Kazanan: "+teams[w].name+" 🎉";
+document.getElementById("resultScores").textContent=
+teams[0].name+": "+scores[0]+" puan • "+teams[1].name+": "+scores[1]+" puan. "+reason;
+document.getElementById("resultPenalty").textContent=
+penalty&&w>=0?"🎭 Ceza: "+teams[1-w].name+" — "+penalty:"";
+}
+makeColors();makePenalties();
+</script>
+</body>
+</html>
